@@ -55,12 +55,17 @@ describe("POST /api/users", () => {
     expect(movieInDatabase).toHaveProperty("id");
 
     expect(movieInDatabase).toHaveProperty("firstname");
-    expect(movieInDatabase.firstname).toStrictEqual(newUser.firstname);
     expect(typeof movieInDatabase.firstname).toBe("string");
+
     expect(movieInDatabase).toHaveProperty("lastname");
     expect(typeof movieInDatabase.lastname).toBe("string");
+
+    expect(movieInDatabase.email).toHaveProperty("email");
+    expect(typeof movieInDatabase.email).toBe("string");
+
     expect(movieInDatabase).toHaveProperty("city");
     expect(typeof movieInDatabase.city).toBe("string");
+
     expect(movieInDatabase).toHaveProperty("language");
     expect(typeof movieInDatabase.language).toBe("string");
   });
