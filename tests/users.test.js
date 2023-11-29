@@ -2,6 +2,9 @@ const request = require("supertest");
 const crypto = require("node:crypto");
 
 const app = require("../src/app");
+const database = require("../database");
+
+afterAll(() => database.end());
 
 describe("GET /api/users", () => {
   it("should return all users", async () => {
@@ -50,37 +53,114 @@ describe("POST /api/users", () => {
       response.body.id
     );
 
-    const [movieInDatabase] = result;
+    const [userInDatabase] = result;
 
-    expect(movieInDatabase).toHaveProperty("id");
+    expect(userInDatabase).toHaveProperty("id");
 
-    expect(movieInDatabase).toHaveProperty("firstname");
-    expect(typeof movieInDatabase.firstname).toBe("string");
+    expect(userInDatabase).toHaveProperty("firstname");
+    expect(typeof userInDatabase.firstname).toBe("string");
 
-    expect(movieInDatabase).toHaveProperty("lastname");
-    expect(typeof movieInDatabase.lastname).toBe("string");
+    expect(userInDatabase).toHaveProperty("lastname");
+    expect(typeof userInDatabase.lastname).toBe("string");
 
-    expect(movieInDatabase.email).toHaveProperty("email");
-    expect(typeof movieInDatabase.email).toBe("string");
+    expect(userInDatabase).toHaveProperty("email");
+    expect(typeof userInDatabase.email).toBe("string");
 
-    expect(movieInDatabase).toHaveProperty("city");
-    expect(typeof movieInDatabase.city).toBe("string");
+    expect(userInDatabase).toHaveProperty("city");
+    expect(typeof userInDatabase.city).toBe("string");
 
-    expect(movieInDatabase).toHaveProperty("language");
-    expect(typeof movieInDatabase.language).toBe("string");
+    expect(userInDatabase).toHaveProperty("language");
+    expect(typeof userInDatabase.language).toBe("string");
   });
 
   it("should return an error", async () => {
-    const movieWithMissingProps = { firstname: "Axel" };
+    const userWithMissingProps = { firstname: "Harry" };
 
     const response = await request(app)
       .post("/api/users")
-      .send(movieWithMissingProps);
+      .send(userWithMissingProps);
 
     expect(response.status).toEqual(500);
   });
 });
 
-const database = require("../database");
+describe("PUT /api/users/:id", () => {
+  it("should edit user", async () => {
+    const newUser = {
+      firstname: "Dimitriov",
+      lastname: "Dimitries",
+      email: `${crypto.randomUUID()}@wild.co`,
+      city: "Mexique",
+      language: "Chelou",
+    };
+    const [result] = await database.query(
+      "INSERT INTO users(firstname, lastname, email, city, language) VALUES (?, ?, ?, ?, ?)",
+      [
+        newUser.firstname,
+        newUser.lastname,
+        newUser.email,
+        newUser.city,
+        newUser.language,
+      ]
+    );
 
-afterAll(() => database.end());
+    const id = result.insertId;
+
+    const updateduser = {
+      firstname: "Dimitriov",
+      lastname: "Dimitries",
+      email: `${crypto.randomUUID()}@wild.co`,
+      city: "Mexique",
+      language: "Chelou",
+    };
+
+    const response = await request(app)
+      .put(`/api/users/${id}`)
+      .send(updateduser);
+
+    expect(response.status).toEqual(204);
+
+    const [users] = await database.query("SELECT * FROM users WHERE id=?", id);
+
+    const [userInDatabase] = users;
+
+    expect(userInDatabase).toHaveProperty("id");
+
+    expect(userInDatabase).toHaveProperty("firstname");
+    expect(userInDatabase.firstname).toStrictEqual(updateduser.firstname);
+
+    expect(userInDatabase).toHaveProperty("lastname");
+    expect(userInDatabase.lastname).toStrictEqual(updateduser.lastname);
+
+    expect(userInDatabase).toHaveProperty("email");
+    expect(userInDatabase.email).toStrictEqual(updateduser.email);
+
+    expect(userInDatabase).toHaveProperty("city");
+    expect(userInDatabase.city).toStrictEqual(updateduser.city);
+
+    expect(userInDatabase).toHaveProperty("language");
+    expect(userInDatabase.language).toStrictEqual(updateduser.language);
+  });
+  it("should return an error", async () => {
+    const userWithMissingProps = { firstname: "Harry" };
+
+    const response = await request(app)
+      .put(`/api/users/1`)
+      .send(userWithMissingProps);
+
+    expect(response.status).toEqual(500);
+  });
+  it("should return no user", async () => {
+    const newUser = {
+      firstname: "Dimitriov",
+      lastname: "Dimitries",
+      email: `${crypto.randomUUID()}@wild.co`,
+      city: "Mexique",
+      language: "Chelou",
+    };
+
+    const response = await request(app).put("/api/users/0").send(newUser);
+
+    expect(response.status).toEqual(404);
+  });
+});
